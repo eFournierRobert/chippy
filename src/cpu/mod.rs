@@ -20,8 +20,16 @@ impl Cpu {
         self.program_counter
     }
 
+    pub fn set_pc(&mut self, value: u16) {
+        self.program_counter = value;
+    }
+
     pub fn get_i_register(&self) -> u16 {
         self.index_register
+    }
+
+    pub fn set_i_register(&mut self, value: u16) {
+        self.index_register = value;
     }
 
     pub fn set_general_register(&mut self, register: u16, value: u8) {
