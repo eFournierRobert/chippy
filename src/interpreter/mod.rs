@@ -70,9 +70,10 @@ impl Interpreter {
                         self.display.print_display();
                     }
 
-                    if decoded_instruction[1] == 0 &&
-                        decoded_instruction[2] == 0xE &&
-                        decoded_instruction[3] == 0xE {
+                    if decoded_instruction[1] == 0
+                        && decoded_instruction[2] == 0xE
+                        && decoded_instruction[3] == 0xE
+                    {
                         let new_pc = self.stack.pop().expect("cannot pop empty stack");
                         self.cpu.set_pc(new_pc);
                     }
@@ -112,6 +113,38 @@ impl Interpreter {
                 0x2 => {
                     self.stack.push(self.cpu.get_pc());
                     self.cpu.set_pc(instruction & 0x0FFF);
+                }
+                0x3 => {
+                    let addr = decoded_instruction[1];
+                    let value = instruction & 0x00FF;
+
+                    if self.cpu.get_general_register(addr) == value as u8 {
+                        self.cpu.increment_pc();
+                    }
+                }
+                0x4 => {
+                    let addr = decoded_instruction[1];
+                    let value = instruction & 0x00FF;
+
+                    if self.cpu.get_general_register(addr) != value as u8 {
+                        self.cpu.increment_pc();
+                    }
+                }
+                0x5 => {
+                    let first_addr = decoded_instruction[1];
+                    let second_addr = decoded_instruction[2];
+
+                    if self.cpu.get_general_register(first_addr) == self.cpu.get_general_register(second_addr) {
+                        self.cpu.increment_pc();
+                    }
+                }
+                0x9 => {
+                    let first_addr = decoded_instruction[1];
+                    let second_addr = decoded_instruction[2];
+
+                    if self.cpu.get_general_register(first_addr) != self.cpu.get_general_register(second_addr) {
+                        self.cpu.increment_pc();
+                    }
                 }
                 _ => {
                     println!("unsupported instruction: {:?}", decoded_instruction);

@@ -44,6 +44,6 @@ impl Cpu {
     }
 
     pub fn add_value_to_general_register(&mut self, register: u16, value: u8) {
-        self.general_register[register as usize] += value;
+        self.general_register[register as usize] = self.general_register[register as usize].wrapping_add(value);
     }
 }
