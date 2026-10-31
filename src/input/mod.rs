@@ -1,12 +1,10 @@
 pub struct Keyboard {
-    keys: [bool; 16]
+    keys: [bool; 16],
 }
 
 impl Keyboard {
     pub fn new() -> Self {
-        Self {
-            keys: [false; 16]
-        }
+        Self { keys: [false; 16] }
     }
 
     pub fn press(&mut self, key: usize) {

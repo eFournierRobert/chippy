@@ -1,15 +1,15 @@
+use crate::cpu::Cpu;
+use crate::display::Display;
+use crate::input::Keyboard;
+use crate::ram::Ram;
+use crate::stack::Stack;
+use crate::timers::Timers;
+use crate::{display, fonts, ram};
 use std::fs::File;
 use std::io::{Error, Read};
 use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
-use crate::cpu::Cpu;
-use crate::display::Display;
-use crate::input::Keyboard;
-use crate::{display, fonts, ram};
-use crate::ram::Ram;
-use crate::stack::Stack;
-use crate::timers::Timers;
 
 pub struct Interpreter {
     cpu: Cpu,
@@ -17,7 +17,7 @@ pub struct Interpreter {
     keyboard: Keyboard,
     ram: Ram,
     stack: Stack,
-    timers: Timers
+    timers: Timers,
 }
 
 impl Interpreter {
@@ -28,17 +28,19 @@ impl Interpreter {
             keyboard: Keyboard::new(),
             ram: Ram::new(),
             stack: Stack::new(),
-            timers: Timers::new()
+            timers: Timers::new(),
         };
 
         for (i, byte) in fonts::FONT.iter().flatten().enumerate() {
-            interpreter.ram.write(ram::FONT_START_ADDRESS + i as u16, *byte);
+            interpreter
+                .ram
+                .write(ram::FONT_START_ADDRESS + i as u16, *byte);
         }
 
         interpreter
     }
 
-    pub fn load_program(&mut self, path: PathBuf) -> Result<(), Error>{
+    pub fn load_program(&mut self, path: PathBuf) -> Result<(), Error> {
         let mut f = File::open(path)?;
         let mut bytes = Vec::new();
 
@@ -60,10 +62,10 @@ impl Interpreter {
 
             match decoded_instruction[0] {
                 0x0 => {
-                    if decoded_instruction[1] == 0 &&
-                        decoded_instruction[2] == 0xE &&
-                        decoded_instruction[3] == 0 {
-
+                    if decoded_instruction[1] == 0
+                        && decoded_instruction[2] == 0xE
+                        && decoded_instruction[3] == 0
+                    {
                         self.display.clear_display();
                         self.display.print_display();
                     }
@@ -72,15 +74,13 @@ impl Interpreter {
                     self.cpu.set_pc(instruction & 0x0FFF);
                 }
                 0x6 => {
-                    self.cpu.set_general_register(
-                        decoded_instruction[1],
-                        (instruction & 0x00FF) as u8
-                    );
+                    self.cpu
+                        .set_general_register(decoded_instruction[1], (instruction & 0x00FF) as u8);
                 }
                 0x7 => {
                     self.cpu.add_value_to_general_register(
                         decoded_instruction[1],
-                        (instruction & 0x00FF) as u8
+                        (instruction & 0x00FF) as u8,
                     );
                 }
                 0xA => {
@@ -108,14 +108,14 @@ impl Interpreter {
             }
 
             instruction = self.fetch_instruction();
-            sleep(Duration::from_millis(100));
+            //sleep(Duration::from_millis(150));
         }
     }
 
     fn fetch_instruction(&mut self) -> u16 {
         let opcode = u16::from_be_bytes([
             self.ram.read(self.cpu.get_pc()),
-            self.ram.read(self.cpu.get_pc() + 1)
+            self.ram.read(self.cpu.get_pc() + 1),
         ]);
 
         self.cpu.increment_pc();

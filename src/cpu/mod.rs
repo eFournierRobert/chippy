@@ -3,7 +3,7 @@ pub const GENERAL_REGISTER_SIZE: usize = 16;
 pub struct Cpu {
     program_counter: u16,
     index_register: u16,
-    general_register: [u8; GENERAL_REGISTER_SIZE]
+    general_register: [u8; GENERAL_REGISTER_SIZE],
 }
 
 impl Cpu {
@@ -11,7 +11,7 @@ impl Cpu {
         Self {
             program_counter: 0,
             index_register: 0,
-            general_register: [0; GENERAL_REGISTER_SIZE]
+            general_register: [0; GENERAL_REGISTER_SIZE],
         }
     }
 
@@ -42,7 +42,7 @@ impl Cpu {
     pub fn get_general_register(&mut self, register: u16) -> u8 {
         self.general_register[register as usize]
     }
-    
+
     pub fn add_value_to_general_register(&mut self, register: u16, value: u8) {
         self.general_register[register as usize] += value;
     }

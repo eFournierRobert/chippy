@@ -1,12 +1,10 @@
 pub struct Stack {
-    memory: Vec<u16>
+    memory: Vec<u16>,
 }
 
 impl Stack {
     pub fn new() -> Self {
-        Self {
-            memory: Vec::new()
-        }
+        Self { memory: Vec::new() }
     }
 
     pub fn push(&mut self, value: u16) {

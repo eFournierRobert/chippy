@@ -2,13 +2,13 @@ const WIDTH: usize = 64;
 const HEIGHT: usize = 32;
 
 pub struct Display {
-    pixels: [bool; WIDTH * HEIGHT]
+    pixels: [bool; WIDTH * HEIGHT],
 }
 
 impl Display {
     pub fn new() -> Self {
         Self {
-            pixels: [false; WIDTH * HEIGHT]
+            pixels: [false; WIDTH * HEIGHT],
         }
     }
 
@@ -17,6 +17,7 @@ impl Display {
     }
 
     pub fn print_display(&self) {
+        print!("\x1B[2J\x1B[1;1H");
         for y in 0..HEIGHT {
             for x in 0..WIDTH {
                 print!("{}", if self.get_pixel(x, y) { "██" } else { "  " });
