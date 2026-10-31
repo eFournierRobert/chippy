@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::{Error, Read};
 use std::path::PathBuf;
+use std::thread::sleep;
+use std::time::Duration;
 use crate::cpu::Cpu;
 use crate::display::Display;
 use crate::input::Keyboard;
@@ -51,6 +53,57 @@ impl Interpreter {
         Ok(())
     }
 
+    pub fn start_execution(&mut self) {
+        let mut instruction = self.fetch_instruction();
+        while instruction != 0 {
+            let decoded_instruction = self.decode_instruction(instruction);
+
+            match decoded_instruction[0] {
+                0 => {
+                    if decoded_instruction[1] == 0 &&
+                        decoded_instruction[2] == 0xE &&
+                        decoded_instruction[3] == 0 {
+                        // TODO Implement clear screen
+                        println!("clear screen!");
+                        self.display.clear_display();
+                    }
+                }
+                1 => {
+                    println!("jump to {}", instruction & 0x0FFF);
+                    self.cpu.set_pc(instruction & 0x0FFF);
+                }
+                6 => {
+                    println!("set general register {}: {}", decoded_instruction[1], instruction & 0x00FF);
+                    self.cpu.set_general_register(
+                        decoded_instruction[1],
+                        (instruction & 0x00FF) as u8
+                    );
+                }
+                7 => {
+                    println!("add value to general register {}: {}", decoded_instruction[1], instruction & 0x00FF);
+                    self.cpu.add_value_to_general_register(
+                        decoded_instruction[1],
+                        (instruction & 0x00FF) as u8
+                    );
+                }
+                0xA => {
+                    println!("set i register: {}", instruction & 0x0FFF);
+                    self.cpu.set_i_register(instruction & 0x0FFF);
+                }
+                0xD => {
+                    // TODO display sprite loaded in I register
+                    println!("display sprite");
+                }
+                _ => {
+                    println!("unsupported instruction: {:?}", decoded_instruction);
+                }
+            }
+
+            instruction = self.fetch_instruction();
+            sleep(Duration::from_millis(100));
+        }
+    }
+
     fn fetch_instruction(&mut self) -> u16 {
         let opcode = u16::from_be_bytes([
             self.ram.read(self.cpu.get_pc()),
@@ -62,7 +115,7 @@ impl Interpreter {
         opcode
     }
 
-    fn decode_instruction(instruction: u16) -> [u16; 4] {
+    fn decode_instruction(&self, instruction: u16) -> [u16; 4] {
         let n1 = (instruction >> 12) & 0xF;
         let n2 = (instruction >> 8) & 0xF;
         let n3 = (instruction >> 4) & 0xF;
