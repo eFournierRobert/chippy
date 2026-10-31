@@ -69,6 +69,13 @@ impl Interpreter {
                         self.display.clear_display();
                         self.display.print_display();
                     }
+
+                    if decoded_instruction[1] == 0 &&
+                        decoded_instruction[2] == 0xE &&
+                        decoded_instruction[3] == 0xE {
+                        let new_pc = self.stack.pop().expect("cannot pop empty stack");
+                        self.cpu.set_pc(new_pc);
+                    }
                 }
                 0x1 => {
                     self.cpu.set_pc(instruction & 0x0FFF);
@@ -102,13 +109,17 @@ impl Interpreter {
 
                     self.display.print_display();
                 }
+                0x2 => {
+                    self.stack.push(self.cpu.get_pc());
+                    self.cpu.set_pc(instruction & 0x0FFF);
+                }
                 _ => {
                     println!("unsupported instruction: {:?}", decoded_instruction);
                 }
             }
 
             instruction = self.fetch_instruction();
-            //sleep(Duration::from_millis(150));
+            sleep(Duration::from_millis(150));
         }
     }
 
