@@ -6,7 +6,7 @@ use std::time::Duration;
 use crate::cpu::Cpu;
 use crate::display::Display;
 use crate::input::Keyboard;
-use crate::{fonts, ram};
+use crate::{display, fonts, ram};
 use crate::ram::Ram;
 use crate::stack::Stack;
 use crate::timers::Timers;
@@ -59,40 +59,48 @@ impl Interpreter {
             let decoded_instruction = self.decode_instruction(instruction);
 
             match decoded_instruction[0] {
-                0 => {
+                0x0 => {
                     if decoded_instruction[1] == 0 &&
                         decoded_instruction[2] == 0xE &&
                         decoded_instruction[3] == 0 {
-                        // TODO Implement clear screen
-                        println!("clear screen!");
+
                         self.display.clear_display();
+                        self.display.print_display();
                     }
                 }
-                1 => {
-                    println!("jump to {}", instruction & 0x0FFF);
+                0x1 => {
                     self.cpu.set_pc(instruction & 0x0FFF);
                 }
-                6 => {
-                    println!("set general register {}: {}", decoded_instruction[1], instruction & 0x00FF);
+                0x6 => {
                     self.cpu.set_general_register(
                         decoded_instruction[1],
                         (instruction & 0x00FF) as u8
                     );
                 }
-                7 => {
-                    println!("add value to general register {}: {}", decoded_instruction[1], instruction & 0x00FF);
+                0x7 => {
                     self.cpu.add_value_to_general_register(
                         decoded_instruction[1],
                         (instruction & 0x00FF) as u8
                     );
                 }
                 0xA => {
-                    println!("set i register: {}", instruction & 0x0FFF);
                     self.cpu.set_i_register(instruction & 0x0FFF);
                 }
                 0xD => {
-                    // TODO display sprite loaded in I register
-                    println!("display sprite");
+                    self.cpu.set_general_register(0xF, false as u8);
+
+                    let x = self.cpu.get_general_register(decoded_instruction[1]);
+                    let y = self.cpu.get_general_register(decoded_instruction[2]);
+                    let height = decoded_instruction[3];
+                    let sprite: Vec<u8> = (0..height)
+                        .map(|row| self.ram.read(self.cpu.get_i_register() + row))
+                        .collect();
+
+                    if self.display.draw_sprite(x as usize, y as usize, sprite) {
+                        self.cpu.set_general_register(0xF, true as u8);
+                    }
+
+                    self.display.print_display();
                 }
                 _ => {
                     println!("unsupported instruction: {:?}", decoded_instruction);
