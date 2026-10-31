@@ -1,8 +1,8 @@
-pub struct stack {
+pub struct Stack {
     memory: Vec<u16>
 }
 
-impl stack {
+impl Stack {
     pub fn push(&mut self, value: u16) {
         self.memory.push(value);
     }
