@@ -9,6 +9,7 @@ pub mod timers;
 pub mod input;
 pub mod cpu;
 pub mod display;
+pub mod interpreter;
 
 fn main() {
     let sdl_context = sdl3::init().expect("error while getting sdl context");
