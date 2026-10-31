@@ -3,6 +3,12 @@ pub struct Stack {
 }
 
 impl Stack {
+    pub fn new() -> Self {
+        Self {
+            memory: Vec::new()
+        }
+    }
+
     pub fn push(&mut self, value: u16) {
         self.memory.push(value);
     }
