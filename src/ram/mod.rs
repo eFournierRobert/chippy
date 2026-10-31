@@ -1,5 +1,6 @@
 
 pub const PROGRAM_START_ADDRESS: usize = 0x200;
+pub const FONT_START_ADDRESS: usize = 0x050;
 
 pub struct ram {
     memory: [i8; 4096]
