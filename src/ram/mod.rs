@@ -9,4 +9,8 @@ impl ram {
     pub fn write(&mut self, address: usize, content: i8) {
         self.memory[address] = content;
     }
+
+    pub fn read(&self, address: usize) -> i8 {
+        return self.memory[address];
+    }
 }
