@@ -43,11 +43,31 @@ impl Interpreter {
         f.read_to_end(&mut bytes)?;
 
         for (i, byte) in bytes.iter().enumerate() {
-            self.ram.write(ram::PROGRAM_START_ADDRESS + i as u16, byte.to_owned());
+            self.ram.write(ram::PROGRAM_START_ADDRESS + i as u16, *byte);
         }
 
         self.cpu.set_pc(ram::PROGRAM_START_ADDRESS);
 
         Ok(())
+    }
+
+    fn fetch_instruction(&mut self) -> u16 {
+        let opcode = u16::from_be_bytes([
+            self.ram.read(self.cpu.get_pc()),
+            self.ram.read(self.cpu.get_pc() + 1)
+        ]);
+
+        self.cpu.increment_pc();
+
+        opcode
+    }
+
+    fn decode_instruction(instruction: u16) -> [u16; 4] {
+        let n1 = (instruction >> 12) & 0xF;
+        let n2 = (instruction >> 8) & 0xF;
+        let n3 = (instruction >> 4) & 0xF;
+        let n4 = instruction & 0xF;
+
+        [n1, n2, n3, n4]
     }
 }

@@ -15,8 +15,11 @@ impl Cpu {
         }
     }
 
-    pub fn increment_pc(&mut self) -> u16 {
+    pub fn increment_pc(&mut self) {
         self.program_counter += 2;
+    }
+
+    pub fn get_pc(&self) -> u16 {
         self.program_counter
     }
 
