@@ -233,7 +233,47 @@ impl Interpreter {
                             );
                         }
                         0x1E => {
-                            
+                            let i_value = self.cpu.get_i_register();
+                            let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
+
+                            let (result, carry) = i_value.overflowing_add(vx_value as u16);
+
+                            self.cpu.set_i_register(result);
+                            self.cpu.set_general_register(0xF, carry as u8);
+                        }
+                        0x29 => {
+                            let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
+
+                            self.cpu.set_i_register(ram::FONT_START_ADDRESS + (vx_value * 5) as u16);
+                        }
+                        0x33 => {
+                            let i_value = self.cpu.get_i_register();
+                            let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
+
+                            self.ram.write(i_value, vx_value / 100);
+                            self.ram.write(i_value + 1, (vx_value / 10) % 10);
+                            self.ram.write(i_value + 2, vx_value % 10);
+                        }
+                        0x55 => {
+                            let i_value = self.cpu.get_i_register();
+                            let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
+
+                            for i in 0..vx_value {
+                                self.ram.write(
+                                    i_value + i as u16,
+                                    self.cpu.get_general_register(i as u16)
+                                );
+                            }
+                        }
+                        0x65 => {
+                            let i_value = self.cpu.get_i_register();
+                            let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
+
+                            for i in 0..vx_value {
+                                let value = self.ram.read(i_value + i as u16);
+
+                                self.cpu.set_general_register(i as u16, value);
+                            }
                         }
                         _ => println!("unsupported instruction: {:?}", decoded_instruction)
                     }
