@@ -257,20 +257,20 @@ impl Interpreter {
                         0x55 => {
                             let i_value = self.cpu.get_i_register();
 
-                            for i in 0..decoded_instruction[1] {
+                            for i in 0..=decoded_instruction[1] {
                                 self.ram.write(
-                                    i_value + i as u16,
-                                    self.cpu.get_general_register(i as u16)
+                                    i_value + i,
+                                    self.cpu.get_general_register(i)
                                 );
                             }
                         }
                         0x65 => {
                             let i_value = self.cpu.get_i_register();
 
-                            for i in 0..decoded_instruction[1] {
-                                let value = self.ram.read(i_value + i as u16);
+                            for i in 0..=decoded_instruction[1] {
+                                let value = self.ram.read(i_value + i);
 
-                                self.cpu.set_general_register(i as u16, value);
+                                self.cpu.set_general_register(i, value);
                             }
                         }
                         _ => println!("unsupported instruction: {:?}", decoded_instruction)
