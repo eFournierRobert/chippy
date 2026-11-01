@@ -1,5 +1,3 @@
-use sdl3::libc::option;
-
 pub const GENERAL_REGISTER_SIZE: usize = 16;
 
 pub struct Cpu {

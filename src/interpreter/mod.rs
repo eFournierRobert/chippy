@@ -197,6 +197,15 @@ impl Interpreter {
                         _ => println!("unsupported instruction: {:?}", decoded_instruction)
                     }
                 }
+                0xB => {
+                    let v0_value = self.cpu.get_general_register(0x0);
+                    self.cpu.set_pc(v0_value as u16 + (instruction & 0x0FFF));
+                }
+                0xC => {
+                    let mut value = rand::random_range(0..254);
+                    value &= (instruction & 0x00FF);
+                    self.cpu.set_general_register(decoded_instruction[1], value as u8);
+                }
                 _ => {
                     println!("unsupported instruction: {:?}", decoded_instruction);
                 }
