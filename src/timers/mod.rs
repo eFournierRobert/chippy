@@ -1,6 +1,12 @@
+use std::time::{Duration, Instant};
+use beep::beep;
+
+const TIMER_INTERVAL: Duration = Duration::from_nanos(1_000_000_000 / 60);
+
 pub struct Timers {
     delay_timer: u8,
     sound_timer: u8,
+    last_timer_tick: Instant
 }
 
 impl Timers {
@@ -8,7 +14,12 @@ impl Timers {
         Self {
             delay_timer: 0,
             sound_timer: 0,
+            last_timer_tick: Instant::now()
         }
+    }
+
+    pub fn get_delay(&self) -> u8 {
+        self.delay_timer
     }
 
     pub fn set_delay(&mut self, value: u8) {
@@ -20,12 +31,19 @@ impl Timers {
     }
 
     pub fn tick(&mut self) {
-        if self.delay_timer > 0 {
-            self.delay_timer -= 1;
-        }
+        let now = Instant::now();
 
-        if self.sound_timer > 0 {
-            self.sound_timer -= 1;
+        while now.duration_since(self.last_timer_tick) >= TIMER_INTERVAL {
+            if self.delay_timer > 0 {
+                self.delay_timer -= 1;
+            }
+
+            if self.sound_timer > 0 {
+                beep(440).expect("unexpected error during beep");
+                self.sound_timer -= 1;
+            }
+
+            self.last_timer_tick += TIMER_INTERVAL;
         }
     }
 }

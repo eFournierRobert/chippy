@@ -8,8 +8,12 @@ use crate::{display, fonts, ram};
 use std::fs::File;
 use std::io::{Error, Read};
 use std::path::PathBuf;
+use std::thread;
 use std::thread::sleep;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+const CPU_FREQUENCY: u64 = 500;
+const CYCLE_DURATION: Duration = Duration::from_nanos(1_000_000_000 / CPU_FREQUENCY);
 
 pub struct Interpreter {
     cpu: Cpu,
@@ -58,6 +62,8 @@ impl Interpreter {
     pub fn start_execution(&mut self) {
         let mut instruction = self.fetch_instruction();
         while instruction != 0 {
+            let start = Instant::now();
+            self.timers.tick();
             let decoded_instruction = self.decode_instruction(instruction);
 
             match decoded_instruction[0] {
@@ -206,13 +212,43 @@ impl Interpreter {
                     value &= (instruction & 0x00FF);
                     self.cpu.set_general_register(decoded_instruction[1], value as u8);
                 }
+                0xF => {
+                    let code = instruction & 0x00FF;
+
+                    match code {
+                        0x07 => {
+                            self.cpu.set_general_register(
+                                decoded_instruction[1],
+                                self.timers.get_delay()
+                            );
+                        }
+                        0x15 => {
+                            self.timers.set_delay(
+                                self.cpu.get_general_register(decoded_instruction[1])
+                            );
+                        }
+                        0x18 => {
+                            self.timers.set_sound(
+                                self.cpu.get_general_register(decoded_instruction[1])
+                            );
+                        }
+                        0x1E => {
+                            
+                        }
+                        _ => println!("unsupported instruction: {:?}", decoded_instruction)
+                    }
+                }
                 _ => {
                     println!("unsupported instruction: {:?}", decoded_instruction);
                 }
             }
 
             instruction = self.fetch_instruction();
-            sleep(Duration::from_millis(100));
+
+            let elapsed = start.elapsed();
+            if elapsed < CYCLE_DURATION {
+                thread::sleep(CYCLE_DURATION - elapsed);
+            }
         }
     }
 
