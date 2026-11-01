@@ -88,7 +88,7 @@ impl Interpreter {
                 0x7 => {
                     self.cpu.add_value_to_general_register(
                         decoded_instruction[1],
-                        (instruction & 0x00FF) as u8,
+                        (instruction & 0x00FF) as u8
                     );
                 }
                 0xA => {
@@ -146,13 +146,64 @@ impl Interpreter {
                         self.cpu.increment_pc();
                     }
                 }
+                0x8 => {
+                    let vx = decoded_instruction[1];
+                    let vy = decoded_instruction[2];
+
+                    let vx_value = self.cpu.get_general_register(vx);
+                    let vy_value = self.cpu.get_general_register(vy);
+
+                    match decoded_instruction[3] {
+                        0x0 => {
+                            self.cpu.set_general_register(vx, vy_value);
+                        }
+                        0x1 => {
+                            self.cpu.set_general_register(vx, vx_value | vy_value);
+                        }
+                        0x2 => {
+                            self.cpu.set_general_register(vx, vx_value & vy_value);
+                        }
+                        0x3 => {
+                            self.cpu.set_general_register(vx, vx_value ^ vy_value);
+                        }
+                        0x4 => {
+                            self.cpu.add_registers(
+                                vx,
+                                vy
+                            );
+                        }
+                        0x5 => {
+                            self.cpu.subtract_value_to_general_register(
+                                vx,
+                                vy_value,
+                                None
+                            )
+                        }
+                        0x7 => {
+                            self.cpu.subtract_value_to_general_register(
+                                vy,
+                                vx_value,
+                                Some(vx)
+                            )
+                        }
+                        0x6 => {
+                            self.cpu.set_general_register(vx, vy_value);
+                            self.cpu.shift_right(vx)
+                        }
+                        0xE => {
+                            self.cpu.set_general_register(vx, vy_value);
+                            self.cpu.shift_left(vx)
+                        }
+                        _ => println!("unsupported instruction: {:?}", decoded_instruction)
+                    }
+                }
                 _ => {
                     println!("unsupported instruction: {:?}", decoded_instruction);
                 }
             }
 
             instruction = self.fetch_instruction();
-            sleep(Duration::from_millis(150));
+            sleep(Duration::from_millis(100));
         }
     }
 
