@@ -44,12 +44,8 @@ impl Display {
                 let sprite_pixel = (byte & (0x80 >> col)) != 0;
 
                 if sprite_pixel {
-                    let px = x + col;
-                    let py = y + row;
-
-                    if px >= WIDTH || py >= HEIGHT {
-                        continue;
-                    }
+                    let px = (x + col) % WIDTH;
+                    let py = (y + row) % HEIGHT;
 
                     let index = py * WIDTH + px;
 
