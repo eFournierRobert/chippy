@@ -217,11 +217,9 @@ impl Interpreter {
                             )
                         }
                         0x6 => {
-                            self.cpu.set_general_register(vx, vy_value);
                             self.cpu.shift_right(vx)
                         }
                         0xE => {
-                            self.cpu.set_general_register(vx, vy_value);
                             self.cpu.shift_left(vx)
                         }
                         _ => println!("unsupported instruction: {:?}", decoded_instruction)

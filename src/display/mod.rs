@@ -47,7 +47,7 @@ impl Display {
                     let px = x + col;
                     let py = y + row;
 
-                    if py >= WIDTH || px >= HEIGHT {
+                    if px >= WIDTH || py >= HEIGHT {
                         continue;
                     }
 

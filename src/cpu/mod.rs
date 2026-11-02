@@ -63,28 +63,21 @@ impl Cpu {
         } else {
             self.general_register[register as usize] = result;
         }
-        self.general_register[0xF] = carry as u8;
+        self.general_register[0xF] = !carry as u8;
     }
 
     pub fn shift_right(&mut self, register: u16) {
         let value = self.general_register[register as usize];
-        if (value & 0x0F) == 1 {
-            self.general_register[0xF] = 0x1;
-        } else {
-            self.general_register[0xF] = 0x0;
-        }
 
-        self.general_register[register as usize] >>= 1;
+        self.general_register[register as usize] = value >> 1;
+
+        self.general_register[0xF] = value & 1;
     }
 
     pub fn shift_left(&mut self, register: u16) {
         let value = self.general_register[register as usize];
-        if (value & 0x0F) == 1 {
-            self.general_register[0xF] = 0x1;
-        } else {
-            self.general_register[0xF] = 0x0;
-        }
+        self.general_register[register as usize] = value << 1;
 
-        self.general_register[register as usize] <<= 1;
+        self.general_register[0xF] = (value >> 7) & 1;
     }
 }
