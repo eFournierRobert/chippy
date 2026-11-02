@@ -6,12 +6,15 @@ use crate::stack::Stack;
 use crate::timers::Timers;
 use crate::{display, fonts, ram};
 use std::fs::File;
-use std::io::{Error, Read};
+use std::io::{stdout, Error, Read};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use crossterm::event::{KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags};
+use crossterm::execute;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 
 const CPU_FREQUENCY: u64 = 500;
@@ -63,12 +66,27 @@ impl Interpreter {
 
     pub fn start_execution(&mut self) {
         enable_raw_mode().expect("can't enable raw mode");
+        execute!(
+            stdout(),
+            PushKeyboardEnhancementFlags(
+                KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES
+                | KeyboardEnhancementFlags::REPORT_EVENT_TYPES
+                | KeyboardEnhancementFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES
+            )
+        ).expect("can't enable stdout enhancement flags");
+
         let input_keyboard = Arc::clone(&self.keyboard);
+        let quit = Arc::new(AtomicBool::new(false));
+        let input_quit = Arc::clone(&quit);
 
         thread::spawn(move || {
             loop {
                 let (key, kind) = match Keyboard::poll_keyboard() {
-                    Ok(event) => event,
+                    Ok(Some(event)) => event,
+                    Ok(None) => {
+                        input_quit.store(true, Ordering::Relaxed);
+                        break;
+                    }
                     Err(error) => {
                         eprintln!("keyboard input error: {error}");
                         break;
@@ -85,7 +103,7 @@ impl Interpreter {
         });
 
         let mut instruction = self.fetch_instruction();
-        while instruction != 0 {
+        'execution: while instruction != 0 && !quit.load(Ordering::Relaxed) {
             let start = Instant::now();
             self.timers.tick();
             let decoded_instruction = self.decode_instruction(instruction);
@@ -299,6 +317,9 @@ impl Interpreter {
                             let mut key_pressed = false;
 
                             while !key_pressed {
+                                if quit.load(Ordering::Relaxed) {
+                                    break 'execution;
+                                }
                                 self.timers.tick();
 
                                 if let Some(v) = self.keyboard.lock().unwrap().is_key_pressed() {
@@ -342,6 +363,10 @@ impl Interpreter {
         }
 
         disable_raw_mode().expect("can't disable raw mode");
+        execute!(
+            stdout(),
+            PopKeyboardEnhancementFlags
+        ).expect("can't pop keyboard enhancement flags");
     }
 
     fn fetch_instruction(&mut self) -> u16 {

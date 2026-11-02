@@ -1,5 +1,4 @@
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use crossterm::terminal::enable_raw_mode;
+use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use std::io;
 
 pub struct Keyboard {
@@ -24,20 +23,29 @@ impl Keyboard {
     }
 
     pub fn is_key_pressed(&self) -> Option<u8> {
-        for (i, v) in self.keys.iter().enumerate() {
-            if *v {
-                return Some(i as u8);
+        for (key, pressed) in self.keys.iter().enumerate() {
+            if *pressed {
+                return Some(key as u8);
             }
         }
 
         None
     }
 
-    pub fn poll_keyboard() -> io::Result<(usize, KeyEventKind)> {
+    pub fn poll_keyboard() -> io::Result<Option<(usize, KeyEventKind)>> {
         loop {
             if let Event::Key(key) = event::read()? {
+                if matches!(key.code, KeyCode::Char('c' | 'C'))
+                    && key.modifiers.contains(KeyModifiers::CONTROL)
+                    && key.kind == KeyEventKind::Press
+                {
+                    return Ok(None);
+                }
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    continue;
+                }
                 if let Some(chip8_key) = Self::chip8_key(key.code) {
-                    return Ok((chip8_key, key.kind));
+                    return Ok(Some((chip8_key, key.kind)));
                 }
             }
         }
