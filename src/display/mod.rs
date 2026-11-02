@@ -44,7 +44,14 @@ impl Display {
                 let sprite_pixel = (byte & (0x80 >> col)) != 0;
 
                 if sprite_pixel {
-                    let index = (y + row) * WIDTH + (x + col);
+                    let px = x + col;
+                    let py = y + row;
+
+                    if py >= WIDTH || px >= HEIGHT {
+                        continue;
+                    }
+
+                    let index = py * WIDTH + px;
 
                     if self.pixels[index] {
                         collision = true;

@@ -268,7 +268,7 @@ impl Interpreter {
                         0x29 => {
                             let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
 
-                            self.cpu.set_i_register(ram::FONT_START_ADDRESS + (vx_value * 5) as u16);
+                            self.cpu.set_i_register(ram::FONT_START_ADDRESS + (vx_value as u16 * 5));
                         }
                         0x33 => {
                             let i_value = self.cpu.get_i_register();
