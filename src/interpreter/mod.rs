@@ -5,17 +5,19 @@ use crate::ram::Ram;
 use crate::stack::Stack;
 use crate::timers::Timers;
 use crate::{display, fonts, ram};
+use crossterm::event::{
+    KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
+};
+use crossterm::execute;
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use std::fs::File;
-use std::io::{stdout, Error, Read};
+use std::io::{Error, Read, stdout};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use crossterm::event::{KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags};
-use crossterm::execute;
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 
 const CPU_FREQUENCY: u64 = 500;
 const CYCLE_DURATION: Duration = Duration::from_nanos(1_000_000_000 / CPU_FREQUENCY);
@@ -70,10 +72,11 @@ impl Interpreter {
             stdout(),
             PushKeyboardEnhancementFlags(
                 KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES
-                | KeyboardEnhancementFlags::REPORT_EVENT_TYPES
-                | KeyboardEnhancementFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES
+                    | KeyboardEnhancementFlags::REPORT_EVENT_TYPES
+                    | KeyboardEnhancementFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES
             )
-        ).expect("can't enable stdout enhancement flags");
+        )
+        .expect("can't enable stdout enhancement flags");
 
         let input_keyboard = Arc::clone(&self.keyboard);
         let quit = Arc::new(AtomicBool::new(false));
@@ -136,7 +139,7 @@ impl Interpreter {
                 0x7 => {
                     self.cpu.add_value_to_general_register(
                         decoded_instruction[1],
-                        (instruction & 0x00FF) as u8
+                        (instruction & 0x00FF) as u8,
                     );
                 }
                 0xA => {
@@ -182,7 +185,9 @@ impl Interpreter {
                     let first_addr = decoded_instruction[1];
                     let second_addr = decoded_instruction[2];
 
-                    if self.cpu.get_general_register(first_addr) == self.cpu.get_general_register(second_addr) {
+                    if self.cpu.get_general_register(first_addr)
+                        == self.cpu.get_general_register(second_addr)
+                    {
                         self.cpu.increment_pc();
                     }
                 }
@@ -190,7 +195,9 @@ impl Interpreter {
                     let first_addr = decoded_instruction[1];
                     let second_addr = decoded_instruction[2];
 
-                    if self.cpu.get_general_register(first_addr) != self.cpu.get_general_register(second_addr) {
+                    if self.cpu.get_general_register(first_addr)
+                        != self.cpu.get_general_register(second_addr)
+                    {
                         self.cpu.increment_pc();
                     }
                 }
@@ -215,32 +222,17 @@ impl Interpreter {
                             self.cpu.set_general_register(vx, vx_value ^ vy_value);
                         }
                         0x4 => {
-                            self.cpu.add_registers(
-                                vx,
-                                vy
-                            );
+                            self.cpu.add_registers(vx, vy);
                         }
-                        0x5 => {
-                            self.cpu.subtract_value_to_general_register(
-                                vx,
-                                vy_value,
-                                None
-                            )
-                        }
-                        0x7 => {
-                            self.cpu.subtract_value_to_general_register(
-                                vy,
-                                vx_value,
-                                Some(vx)
-                            )
-                        }
-                        0x6 => {
-                            self.cpu.shift_right(vx)
-                        }
-                        0xE => {
-                            self.cpu.shift_left(vx)
-                        }
-                        _ => println!("unsupported instruction: {:?}", decoded_instruction)
+                        0x5 => self
+                            .cpu
+                            .subtract_value_to_general_register(vx, vy_value, None),
+                        0x7 => self
+                            .cpu
+                            .subtract_value_to_general_register(vy, vx_value, Some(vx)),
+                        0x6 => self.cpu.shift_right(vx),
+                        0xE => self.cpu.shift_left(vx),
+                        _ => println!("unsupported instruction: {:?}", decoded_instruction),
                     }
                 }
                 0xB => {
@@ -250,7 +242,8 @@ impl Interpreter {
                 0xC => {
                     let mut value = rand::random_range(0..254);
                     value &= (instruction & 0x00FF);
-                    self.cpu.set_general_register(decoded_instruction[1], value as u8);
+                    self.cpu
+                        .set_general_register(decoded_instruction[1], value as u8);
                 }
                 0xF => {
                     let code = instruction & 0x00FF;
@@ -259,18 +252,16 @@ impl Interpreter {
                         0x07 => {
                             self.cpu.set_general_register(
                                 decoded_instruction[1],
-                                self.timers.get_delay()
+                                self.timers.get_delay(),
                             );
                         }
                         0x15 => {
-                            self.timers.set_delay(
-                                self.cpu.get_general_register(decoded_instruction[1])
-                            );
+                            self.timers
+                                .set_delay(self.cpu.get_general_register(decoded_instruction[1]));
                         }
                         0x18 => {
-                            self.timers.set_sound(
-                                self.cpu.get_general_register(decoded_instruction[1])
-                            );
+                            self.timers
+                                .set_sound(self.cpu.get_general_register(decoded_instruction[1]));
                         }
                         0x1E => {
                             let i_value = self.cpu.get_i_register();
@@ -284,7 +275,8 @@ impl Interpreter {
                         0x29 => {
                             let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
 
-                            self.cpu.set_i_register(ram::FONT_START_ADDRESS + (vx_value as u16 * 5));
+                            self.cpu
+                                .set_i_register(ram::FONT_START_ADDRESS + (vx_value as u16 * 5));
                         }
                         0x33 => {
                             let i_value = self.cpu.get_i_register();
@@ -298,10 +290,8 @@ impl Interpreter {
                             let i_value = self.cpu.get_i_register();
 
                             for i in 0..=decoded_instruction[1] {
-                                self.ram.write(
-                                    i_value + i,
-                                    self.cpu.get_general_register(i)
-                                );
+                                self.ram
+                                    .write(i_value + i, self.cpu.get_general_register(i));
                             }
                         }
                         0x65 => {
@@ -317,7 +307,7 @@ impl Interpreter {
                             let mut key_pressed = false;
                             let mut key_released = false;
 
-                            while !key_pressed  && !key_released {
+                            while !key_pressed && !key_released {
                                 if quit.load(Ordering::Relaxed) {
                                     break 'execution;
                                 }
@@ -336,7 +326,7 @@ impl Interpreter {
                                 }
                             }
                         }
-                        _ => println!("unsupported instruction: {:?}", decoded_instruction)
+                        _ => println!("unsupported instruction: {:?}", decoded_instruction),
                     }
                 }
                 0xE => {
@@ -354,7 +344,7 @@ impl Interpreter {
                                 self.cpu.increment_pc();
                             }
                         }
-                        _ => println!("unsupported instruction: {:?}", decoded_instruction)
+                        _ => println!("unsupported instruction: {:?}", decoded_instruction),
                     }
                 }
                 _ => {
@@ -371,10 +361,8 @@ impl Interpreter {
         }
 
         disable_raw_mode().expect("can't disable raw mode");
-        execute!(
-            stdout(),
-            PopKeyboardEnhancementFlags
-        ).expect("can't pop keyboard enhancement flags");
+        execute!(stdout(), PopKeyboardEnhancementFlags)
+            .expect("can't pop keyboard enhancement flags");
     }
 
     fn fetch_instruction(&mut self) -> u16 {

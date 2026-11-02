@@ -1,18 +1,18 @@
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 
 const WIDTH: usize = 64;
 const HEIGHT: usize = 32;
 
 pub struct Display {
     pixels: [bool; WIDTH * HEIGHT],
-    dirty: bool
+    dirty: bool,
 }
 
 impl Display {
     pub fn new() -> Self {
         Self {
             pixels: [false; WIDTH * HEIGHT],
-            dirty: false
+            dirty: false,
         }
     }
 
@@ -38,7 +38,9 @@ impl Display {
         }
 
         let mut stdout = stdout().lock();
-        stdout.write_all(frame.as_bytes()).expect("error while writing frame to stdout");
+        stdout
+            .write_all(frame.as_bytes())
+            .expect("error while writing frame to stdout");
         stdout.flush().expect("error while flushing stdout");
 
         self.dirty = false;

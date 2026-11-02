@@ -44,18 +44,24 @@ impl Cpu {
     }
 
     pub fn add_value_to_general_register(&mut self, register: u16, value: u8) {
-        self.general_register[register as usize] = self.general_register[register as usize].wrapping_add(value);
+        self.general_register[register as usize] =
+            self.general_register[register as usize].wrapping_add(value);
     }
 
     pub fn add_registers(&mut self, x: u16, y: u16) {
-        let (result, carry) = self.general_register[x as usize]
-            .overflowing_add(self.general_register[y as usize]);
+        let (result, carry) =
+            self.general_register[x as usize].overflowing_add(self.general_register[y as usize]);
 
         self.general_register[x as usize] = result;
         self.general_register[0xF] = carry as u8;
     }
 
-    pub fn subtract_value_to_general_register(&mut self, register: u16, value: u8, store_reg: Option<u16>) {
+    pub fn subtract_value_to_general_register(
+        &mut self,
+        register: u16,
+        value: u8,
+        store_reg: Option<u16>,
+    ) {
         let (result, carry) = self.general_register[register as usize].overflowing_sub(value);
 
         if store_reg.is_some() {

@@ -5,7 +5,7 @@ const TIMER_INTERVAL: Duration = Duration::from_nanos(1_000_000_000 / 60);
 pub struct Timers {
     delay_timer: u8,
     sound_timer: u8,
-    last_timer_tick: Instant
+    last_timer_tick: Instant,
 }
 
 impl Timers {
@@ -13,7 +13,7 @@ impl Timers {
         Self {
             delay_timer: 0,
             sound_timer: 0,
-            last_timer_tick: Instant::now()
+            last_timer_tick: Instant::now(),
         }
     }
 
