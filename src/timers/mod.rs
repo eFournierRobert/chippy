@@ -39,7 +39,7 @@ impl Timers {
             }
 
             if self.sound_timer > 0 {
-                beep(440).expect("unexpected error during beep");
+                print!("\x07");
                 self.sound_timer -= 1;
             }
 

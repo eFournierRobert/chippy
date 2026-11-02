@@ -13,7 +13,7 @@ pub mod timers;
 fn main() {
     let mut interpreter = Interpreter::new();
 
-    let program_path = Path::new("programs/6-keypad.ch8");
+    let program_path = Path::new("programs/7-beep.ch8");
 
     interpreter
         .load_program(program_path.to_path_buf())
