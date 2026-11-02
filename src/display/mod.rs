@@ -1,3 +1,5 @@
+use std::io::{stdout, Write};
+
 const WIDTH: usize = 64;
 const HEIGHT: usize = 32;
 
@@ -17,13 +19,17 @@ impl Display {
     }
 
     pub fn print_display(&self) {
-        print!("\x1B[2J\x1B[1;1H");
+        let mut stdout = stdout();
+
+        write!(stdout, "\x1B[2J\x1B[1;1H");
         for y in 0..HEIGHT {
             for x in 0..WIDTH {
-                print!("{}", if self.get_pixel(x, y) { "██" } else { "  " });
+                write!(stdout, "{}", if self.get_pixel(x, y) { "██" } else { "  " });
             }
-            println!();
+            write!(stdout, "\r\n");
         }
+
+        stdout.flush();
     }
 
     pub fn clear_display(&mut self) {

@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 beep = "0.3.0"
+crossterm = "0.29.0"
 rand = "0.10.3"

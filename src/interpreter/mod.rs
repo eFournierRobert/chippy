@@ -8,9 +8,11 @@ use crate::{display, fonts, ram};
 use std::fs::File;
 use std::io::{Error, Read};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 
 const CPU_FREQUENCY: u64 = 500;
 const CYCLE_DURATION: Duration = Duration::from_nanos(1_000_000_000 / CPU_FREQUENCY);
@@ -18,7 +20,7 @@ const CYCLE_DURATION: Duration = Duration::from_nanos(1_000_000_000 / CPU_FREQUE
 pub struct Interpreter {
     cpu: Cpu,
     display: Display,
-    keyboard: Keyboard,
+    keyboard: Arc<Mutex<Keyboard>>,
     ram: Ram,
     stack: Stack,
     timers: Timers,
@@ -29,7 +31,7 @@ impl Interpreter {
         let mut interpreter = Self {
             cpu: Cpu::new(),
             display: Display::new(),
-            keyboard: Keyboard::new(),
+            keyboard: Arc::new(Mutex::new(Keyboard::new())),
             ram: Ram::new(),
             stack: Stack::new(),
             timers: Timers::new(),
@@ -60,6 +62,28 @@ impl Interpreter {
     }
 
     pub fn start_execution(&mut self) {
+        enable_raw_mode().expect("can't enable raw mode");
+        let input_keyboard = Arc::clone(&self.keyboard);
+
+        thread::spawn(move || {
+            loop {
+                let (key, kind) = match Keyboard::poll_keyboard() {
+                    Ok(event) => event,
+                    Err(error) => {
+                        eprintln!("keyboard input error: {error}");
+                        break;
+                    }
+                };
+
+                let mut keyboard = input_keyboard.lock().unwrap();
+                match kind {
+                    crossterm::event::KeyEventKind::Press
+                    | crossterm::event::KeyEventKind::Repeat => keyboard.press(key),
+                    crossterm::event::KeyEventKind::Release => keyboard.release(key),
+                }
+            }
+        });
+
         let mut instruction = self.fetch_instruction();
         while instruction != 0 {
             let start = Instant::now();
@@ -273,6 +297,36 @@ impl Interpreter {
                                 self.cpu.set_general_register(i, value);
                             }
                         }
+                        0x0A => {
+                            let mut key_pressed = false;
+
+                            while !key_pressed {
+                                self.timers.tick();
+
+                                if let Some(v) = self.keyboard.lock().unwrap().is_key_pressed() {
+                                    key_pressed = true;
+                                    self.cpu.set_general_register(decoded_instruction[1], v);
+                                }
+                            }
+                        }
+                        _ => println!("unsupported instruction: {:?}", decoded_instruction)
+                    }
+                }
+                0xE => {
+                    let code = instruction & 0x00FF;
+                    let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
+
+                    match code {
+                        0x9E => {
+                            if self.keyboard.lock().unwrap().is_pressed(vx_value as usize) {
+                                self.cpu.increment_pc();
+                            }
+                        }
+                        0xA1 => {
+                            if !self.keyboard.lock().unwrap().is_pressed(vx_value as usize) {
+                                self.cpu.increment_pc();
+                            }
+                        }
                         _ => println!("unsupported instruction: {:?}", decoded_instruction)
                     }
                 }
@@ -288,6 +342,8 @@ impl Interpreter {
                 thread::sleep(CYCLE_DURATION - elapsed);
             }
         }
+
+        disable_raw_mode().expect("can't disable raw mode");
     }
 
     fn fetch_instruction(&mut self) -> u16 {
