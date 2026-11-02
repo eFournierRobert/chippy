@@ -315,16 +315,24 @@ impl Interpreter {
                         }
                         0x0A => {
                             let mut key_pressed = false;
+                            let mut key_released = false;
 
-                            while !key_pressed {
+                            while !key_pressed  && !key_released {
                                 if quit.load(Ordering::Relaxed) {
                                     break 'execution;
                                 }
                                 self.timers.tick();
 
-                                if let Some(v) = self.keyboard.lock().unwrap().is_key_pressed() {
+                                let pressed_key = {
+                                    let keyboard = self.keyboard.lock().unwrap();
+                                    keyboard.is_key_pressed()
+                                };
+
+                                if let Some(v) = pressed_key {
                                     key_pressed = true;
-                                    self.cpu.set_general_register(decoded_instruction[1], v);
+
+                                    while self.keyboard.lock().unwrap().is_pressed(v as usize) {}
+                                    key_released = true;
                                 }
                             }
                         }
