@@ -4,7 +4,7 @@ use crate::input::Keyboard;
 use crate::ram::Ram;
 use crate::stack::Stack;
 use crate::timers::Timers;
-use crate::{display, fonts, ram};
+use crate::{fonts, ram};
 use crossterm::event::{
     KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
 };
@@ -16,7 +16,6 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 const CPU_FREQUENCY: u64 = 500;
@@ -31,15 +30,21 @@ pub struct Interpreter {
     timers: Timers,
 }
 
+impl Default for Interpreter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Interpreter {
     pub fn new() -> Self {
         let mut interpreter = Self {
-            cpu: Cpu::new(),
-            display: Display::new(),
-            keyboard: Arc::new(Mutex::new(Keyboard::new())),
+            cpu: Cpu::default(),
+            display: Display::default(),
+            keyboard: Arc::new(Mutex::new(Keyboard::default())),
             ram: Ram::new(),
-            stack: Stack::new(),
-            timers: Timers::new(),
+            stack: Stack::default(),
+            timers: Timers::default(),
         };
 
         for (i, byte) in fonts::FONT.iter().flatten().enumerate() {
@@ -241,7 +246,7 @@ impl Interpreter {
                 }
                 0xC => {
                     let mut value = rand::random_range(0..254);
-                    value &= (instruction & 0x00FF);
+                    value &= instruction & 0x00FF;
                     self.cpu
                         .set_general_register(decoded_instruction[1], value as u8);
                 }

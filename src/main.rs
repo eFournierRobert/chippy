@@ -1,4 +1,3 @@
-use std::env::args;
 use crate::interpreter::Interpreter;
 use std::path::Path;
 use clap::{command, Arg};
@@ -28,7 +27,7 @@ fn main() {
 
     if let Some(game) = matches.get_one::<String>("game") {
         print!("\x1B[2J");
-        let mut interpreter = Interpreter::new();
+        let mut interpreter = Interpreter::default();
 
         let program_path = Path::new(game);
 

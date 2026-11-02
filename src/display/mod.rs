@@ -8,6 +8,12 @@ pub struct Display {
     dirty: bool,
 }
 
+impl Default for Display {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Display {
     pub fn new() -> Self {
         Self {

@@ -8,6 +8,12 @@ pub struct Timers {
     last_timer_tick: Instant,
 }
 
+impl Default for Timers {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Timers {
     pub fn new() -> Self {
         Self {

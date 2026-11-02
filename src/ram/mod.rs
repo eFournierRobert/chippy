@@ -19,6 +19,6 @@ impl Ram {
     }
 
     pub fn read(&self, address: u16) -> u8 {
-        return self.memory[address as usize];
+        self.memory[address as usize]
     }
 }

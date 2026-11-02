@@ -6,6 +6,12 @@ pub struct Cpu {
     general_register: [u8; GENERAL_REGISTER_SIZE],
 }
 
+impl Default for Cpu {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Cpu {
     pub fn new() -> Self {
         Self {
@@ -64,8 +70,8 @@ impl Cpu {
     ) {
         let (result, carry) = self.general_register[register as usize].overflowing_sub(value);
 
-        if store_reg.is_some() {
-            self.general_register[store_reg.unwrap() as usize] = result;
+        if let Some(reg) = store_reg {
+            self.general_register[reg as usize] = result;
         } else {
             self.general_register[register as usize] = result;
         }

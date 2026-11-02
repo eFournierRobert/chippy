@@ -2,6 +2,12 @@ pub struct Stack {
     memory: Vec<u16>,
 }
 
+impl Default for Stack {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Stack {
     pub fn new() -> Self {
         Self { memory: Vec::new() }
