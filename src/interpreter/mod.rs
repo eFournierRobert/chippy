@@ -72,16 +72,7 @@ impl Interpreter {
     }
 
     pub fn start_execution(&mut self) {
-        enable_raw_mode().expect("can't enable raw mode");
-        execute!(
-            stdout(),
-            PushKeyboardEnhancementFlags(
-                KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES
-                    | KeyboardEnhancementFlags::REPORT_EVENT_TYPES
-                    | KeyboardEnhancementFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES
-            )
-        )
-        .expect("can't enable stdout enhancement flags");
+        self.init_terminal();
 
         let input_keyboard = Arc::clone(&self.keyboard);
         let quit = Arc::new(AtomicBool::new(false));
@@ -365,9 +356,25 @@ impl Interpreter {
             }
         }
 
+        self.reset_terminal();
+    }
+
+    fn reset_terminal(&self) {
         disable_raw_mode().expect("can't disable raw mode");
         execute!(stdout(), PopKeyboardEnhancementFlags)
             .expect("can't pop keyboard enhancement flags");
+    }
+
+    fn init_terminal(&self) {
+        enable_raw_mode().expect("can't enable raw mode");
+        execute!(
+            stdout(),
+            PushKeyboardEnhancementFlags(
+                KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES
+                    | KeyboardEnhancementFlags::REPORT_EVENT_TYPES
+                    | KeyboardEnhancementFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES
+            )
+        ).expect("can't enable stdout enhancement flags");
     }
 
     fn fetch_instruction(&mut self) -> u16 {
