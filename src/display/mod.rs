@@ -5,12 +5,14 @@ const HEIGHT: usize = 32;
 
 pub struct Display {
     pixels: [bool; WIDTH * HEIGHT],
+    dirty: bool
 }
 
 impl Display {
     pub fn new() -> Self {
         Self {
             pixels: [false; WIDTH * HEIGHT],
+            dirty: false
         }
     }
 
@@ -18,22 +20,33 @@ impl Display {
         self.pixels[y * WIDTH + x]
     }
 
-    pub fn print_display(&self) {
-        let mut stdout = stdout();
-
-        write!(stdout, "\x1B[2J\x1B[1;1H");
-        for y in 0..HEIGHT {
-            for x in 0..WIDTH {
-                write!(stdout, "{}", if self.get_pixel(x, y) { "██" } else { "  " });
-            }
-            write!(stdout, "\r\n");
+    pub fn print_display(&mut self) {
+        if !self.dirty {
+            return;
         }
 
-        stdout.flush();
+        let mut frame = String::with_capacity(WIDTH * HEIGHT * 6);
+        frame.push_str("\x1B[H");
+
+        for y in 0..HEIGHT {
+            for x in 0..WIDTH {
+                frame.push_str(if self.get_pixel(x, y) { "██" } else { "  " });
+            }
+            if y + 1 < HEIGHT {
+                frame.push_str("\r\n");
+            }
+        }
+
+        let mut stdout = stdout().lock();
+        stdout.write_all(frame.as_bytes()).expect("error while writing frame to stdout");
+        stdout.flush().expect("error while flushing stdout");
+
+        self.dirty = false;
     }
 
     pub fn clear_display(&mut self) {
         self.pixels.fill(false);
+        self.dirty = true;
     }
 
     pub fn draw_sprite(&mut self, x: usize, y: usize, sprite: Vec<u8>) -> bool {
@@ -58,6 +71,7 @@ impl Display {
             }
         }
 
+        self.dirty = true;
         collision
     }
 }

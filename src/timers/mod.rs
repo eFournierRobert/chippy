@@ -1,5 +1,4 @@
 use std::time::{Duration, Instant};
-use beep::beep;
 
 const TIMER_INTERVAL: Duration = Duration::from_nanos(1_000_000_000 / 60);
 

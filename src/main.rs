@@ -11,9 +11,10 @@ pub mod stack;
 pub mod timers;
 
 fn main() {
+    print!("\x1B[2J");
     let mut interpreter = Interpreter::new();
 
-    let program_path = Path::new("programs/7-beep.ch8");
+    let program_path = Path::new("programs/Pong (alt).ch8");
 
     interpreter
         .load_program(program_path.to_path_buf())
