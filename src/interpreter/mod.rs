@@ -374,7 +374,8 @@ impl Interpreter {
                     | KeyboardEnhancementFlags::REPORT_EVENT_TYPES
                     | KeyboardEnhancementFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES
             )
-        ).expect("can't enable stdout enhancement flags");
+        )
+        .expect("can't enable stdout enhancement flags");
     }
 
     fn fetch_instruction(&mut self) -> u16 {

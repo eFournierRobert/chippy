@@ -1,6 +1,6 @@
 use crate::interpreter::Interpreter;
+use clap::{Arg, command};
 use std::path::Path;
-use clap::{command, Arg};
 
 pub mod cpu;
 pub mod display;
@@ -18,7 +18,7 @@ fn main() {
                 .short('g')
                 .long("game")
                 .help("Game to launch")
-                .required(true)
+                .required(true),
         )
         .arg_required_else_help(true)
         .about("A fully working terminal Chip-8 interpreter")
