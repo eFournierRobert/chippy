@@ -3,6 +3,7 @@ use std::io::{Write, stdout};
 const WIDTH: usize = 64;
 const HEIGHT: usize = 32;
 
+/// A 64-by-32 pixel display with terminal rendering.
 pub struct Display {
     pixels: [bool; WIDTH * HEIGHT],
     dirty: bool,
@@ -15,6 +16,7 @@ impl Default for Display {
 }
 
 impl Display {
+    /// Creates a blank display.
     pub fn new() -> Self {
         Self {
             pixels: [false; WIDTH * HEIGHT],
@@ -22,10 +24,20 @@ impl Display {
         }
     }
 
+    /// Returns the pixel at `(x, y)`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the calculated pixel index is outside the display buffer.
     pub fn get_pixel(&self, x: usize, y: usize) -> bool {
         self.pixels[y * WIDTH + x]
     }
 
+    /// Writes the display to standard output if it has changed.
+    ///
+    /// # Panics
+    ///
+    /// Panics if writing or flushing standard output fails.
     pub fn print_display(&mut self) {
         if !self.dirty {
             return;
@@ -52,11 +64,15 @@ impl Display {
         self.dirty = false;
     }
 
+    /// Clears all pixels and marks the display for rendering.
     pub fn clear_display(&mut self) {
         self.pixels.fill(false);
         self.dirty = true;
     }
 
+    /// XORs a sprite onto the display, wrapping at the edges.
+    ///
+    /// Returns `true` if any lit pixel was erased.
     pub fn draw_sprite(&mut self, x: usize, y: usize, sprite: Vec<u8>) -> bool {
         let mut collision = false;
 

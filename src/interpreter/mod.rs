@@ -21,6 +21,7 @@ use std::time::{Duration, Instant};
 const CPU_FREQUENCY: u64 = 500;
 const CYCLE_DURATION: Duration = Duration::from_nanos(1_000_000_000 / CPU_FREQUENCY);
 
+/// A CHIP-8 interpreter with terminal display and keyboard input.
 pub struct Interpreter {
     cpu: Cpu,
     display: Display,
@@ -38,6 +39,7 @@ impl Default for Interpreter {
 }
 
 impl Interpreter {
+    /// Creates an interpreter and loads the built-in font into memory.
     pub fn new() -> Self {
         let mut interpreter = Self {
             cpu: Cpu::default(),
@@ -58,6 +60,15 @@ impl Interpreter {
         interpreter
     }
 
+    /// Loads a program into memory and sets the program counter to its start.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the program file cannot be opened or read.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the program does not fit in memory.
     pub fn load_program(&mut self, path: PathBuf) -> Result<(), Error> {
         let mut f = File::open(path)?;
         let mut bytes = Vec::new();
@@ -73,6 +84,13 @@ impl Interpreter {
         Ok(())
     }
 
+    /// Runs the loaded program until a zero instruction or a quit request.
+    ///
+    /// Initializes terminal input and display; Ctrl-C requests termination.
+    ///
+    /// # Panics
+    ///
+    /// Panics on terminal setup or output errors, invalid memory access, or an empty return stack.
     pub fn start_execution(&mut self) {
         self.init_terminal();
 
@@ -99,6 +117,7 @@ impl Interpreter {
         self.reset_terminal();
     }
 
+    /// Starts a thread to update keyboard state from terminal events.
     fn start_keyboard_input(&mut self) {
         let input_keyboard = Arc::clone(&self.keyboard);
         let input_quit = Arc::clone(&self.quit);
@@ -127,6 +146,7 @@ impl Interpreter {
         });
     }
 
+    /// Decodes and executes one instruction.
     fn execute_instruction(&mut self, instruction: u16) {
         let [op, x, y, n] = self.decode_instruction(instruction);
 
@@ -239,6 +259,7 @@ impl Interpreter {
         }
     }
 
+    /// Executes an `8xyN` register operation.
     fn execute_arithmetic_ops(&mut self, vx: u16, vy: u16, operation: u16) {
         let vx_value = self.cpu.get_general_register(vx);
         let vy_value = self.cpu.get_general_register(vy);
@@ -271,6 +292,7 @@ impl Interpreter {
         }
     }
 
+    /// Executes a keyboard-dependent skip instruction.
     fn execute_skip_if_key(&mut self, vx_value: u8, code: u16, instruction: u16) {
         match code {
             0x9E => {
@@ -286,6 +308,7 @@ impl Interpreter {
         }
     }
 
+    /// Waits for a key press and release while updating timers.
     fn execute_blocking_get_key(&mut self, register: u16) {
         let mut pressed_key = None;
 
@@ -314,6 +337,7 @@ impl Interpreter {
         }
     }
 
+    /// Executes an `FxNN` instruction.
     fn execute_f_instruction(&mut self, x: u16, code: u16) {
         match code {
             0x07 => {
@@ -370,12 +394,14 @@ impl Interpreter {
         }
     }
 
+    /// Restores terminal mode and keyboard enhancement flags.
     fn reset_terminal(&self) {
         disable_raw_mode().expect("can't disable raw mode");
         execute!(stdout(), PopKeyboardEnhancementFlags)
             .expect("can't pop keyboard enhancement flags");
     }
 
+    /// Enables raw mode and keyboard event reporting.
     fn init_terminal(&self) {
         enable_raw_mode().expect("can't enable raw mode");
         execute!(
@@ -389,6 +415,7 @@ impl Interpreter {
         .expect("can't enable stdout enhancement flags");
     }
 
+    /// Reads the next big-endian instruction and advances the program counter.
     fn fetch_instruction(&mut self) -> u16 {
         let opcode = u16::from_be_bytes([
             self.ram.read(self.cpu.get_pc()),
@@ -400,6 +427,7 @@ impl Interpreter {
         opcode
     }
 
+    /// Splits an instruction into its four nibbles.
     fn decode_instruction(&self, instruction: u16) -> [u16; 4] {
         let n1 = (instruction >> 12) & 0xF;
         let n2 = (instruction >> 8) & 0xF;

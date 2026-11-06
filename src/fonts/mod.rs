@@ -1,3 +1,4 @@
+/// Five-byte sprites for the hexadecimal digits `0` through `F`.
 pub const FONT: [[u8; 5]; 16] = [
     // 0
     [0xF0, 0x90, 0x90, 0x90, 0xF0],
