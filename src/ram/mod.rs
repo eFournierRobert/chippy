@@ -7,6 +7,12 @@ pub struct Ram {
     memory: [u8; RAM_SIZE],
 }
 
+impl Default for Ram {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Ram {
     pub fn new() -> Self {
         Self {

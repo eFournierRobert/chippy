@@ -79,12 +79,15 @@ impl Interpreter {
         self.start_keyboard_input();
 
         let mut instruction = self.fetch_instruction();
-        'execution: while instruction != 0 && !self.quit.load(Ordering::Relaxed) {
+        while instruction != 0 && !self.quit.load(Ordering::Relaxed) {
             let start = Instant::now();
             self.timers.tick();
 
             self.execute_instruction(instruction);
 
+            if self.quit.load(Ordering::Relaxed) {
+                break;
+            }
             instruction = self.fetch_instruction();
 
             let elapsed = start.elapsed();
@@ -125,22 +128,16 @@ impl Interpreter {
     }
 
     fn execute_instruction(&mut self, instruction: u16) {
-        let decoded_instruction = self.decode_instruction(instruction);
+        let [op, x, y, n] = self.decode_instruction(instruction);
 
-        match decoded_instruction[0] {
+        match op {
             0x0 => {
-                if decoded_instruction[1] == 0
-                    && decoded_instruction[2] == 0xE
-                    && decoded_instruction[3] == 0
-                {
+                if x == 0 && y == 0xE && n == 0 {
                     self.display.clear_display();
                     self.display.print_display();
                 }
 
-                if decoded_instruction[1] == 0
-                    && decoded_instruction[2] == 0xE
-                    && decoded_instruction[3] == 0xE
-                {
+                if x == 0 && y == 0xE && n == 0xE {
                     let new_pc = self.stack.pop().expect("cannot pop empty stack");
                     self.cpu.set_pc(new_pc);
                 }
@@ -150,13 +147,11 @@ impl Interpreter {
             }
             0x6 => {
                 self.cpu
-                    .set_general_register(decoded_instruction[1], (instruction & 0x00FF) as u8);
+                    .set_general_register(x, (instruction & 0x00FF) as u8);
             }
             0x7 => {
-                self.cpu.add_value_to_general_register(
-                    decoded_instruction[1],
-                    (instruction & 0x00FF) as u8,
-                );
+                self.cpu
+                    .add_value_to_general_register(x, (instruction & 0x00FF) as u8);
             }
             0xA => {
                 self.cpu.set_i_register(instruction & 0x0FFF);
@@ -164,9 +159,9 @@ impl Interpreter {
             0xD => {
                 self.cpu.set_general_register(0xF, false as u8);
 
-                let x = self.cpu.get_general_register(decoded_instruction[1]);
-                let y = self.cpu.get_general_register(decoded_instruction[2]);
-                let height = decoded_instruction[3];
+                let x = self.cpu.get_general_register(x);
+                let y = self.cpu.get_general_register(y);
+                let height = n;
                 let sprite: Vec<u8> = (0..height)
                     .map(|row| self.ram.read(self.cpu.get_i_register() + row))
                     .collect();
@@ -182,7 +177,7 @@ impl Interpreter {
                 self.cpu.set_pc(instruction & 0x0FFF);
             }
             0x3 => {
-                let addr = decoded_instruction[1];
+                let addr = x;
                 let value = instruction & 0x00FF;
 
                 if self.cpu.get_general_register(addr) == value as u8 {
@@ -190,7 +185,7 @@ impl Interpreter {
                 }
             }
             0x4 => {
-                let addr = decoded_instruction[1];
+                let addr = x;
                 let value = instruction & 0x00FF;
 
                 if self.cpu.get_general_register(addr) != value as u8 {
@@ -198,8 +193,8 @@ impl Interpreter {
                 }
             }
             0x5 => {
-                let first_addr = decoded_instruction[1];
-                let second_addr = decoded_instruction[2];
+                let first_addr = x;
+                let second_addr = y;
 
                 if self.cpu.get_general_register(first_addr)
                     == self.cpu.get_general_register(second_addr)
@@ -208,8 +203,8 @@ impl Interpreter {
                 }
             }
             0x9 => {
-                let first_addr = decoded_instruction[1];
-                let second_addr = decoded_instruction[2];
+                let first_addr = x;
+                let second_addr = y;
 
                 if self.cpu.get_general_register(first_addr)
                     != self.cpu.get_general_register(second_addr)
@@ -218,10 +213,7 @@ impl Interpreter {
                 }
             }
             0x8 => {
-                let vx = decoded_instruction[1];
-                let vy = decoded_instruction[2];
-
-                self.execute_arithmetic_ops(decoded_instruction, vx, vy);
+                self.execute_arithmetic_ops(x, y, n);
             }
             0xB => {
                 let v0_value = self.cpu.get_general_register(0x0);
@@ -229,42 +221,29 @@ impl Interpreter {
             }
             0xC => {
                 let mut value: u8 = rand::random();
-                value &= instruction as u8 & 0x00FF;
-                self.cpu.set_general_register(decoded_instruction[1], value);
+                value &= instruction as u8;
+                self.cpu.set_general_register(x, value);
             }
             0xF => {
-                let code = instruction & 0x00FF;
-
-                match code {
-                    0x07 | 0x15 | 0x18 | 0x1E | 0x29 | 0x33 => {
-                        self.execute_misc_ops(decoded_instruction, code);
-                    }
-                    0x55 | 0x65 => {
-                        self.execute_ram_operations(decoded_instruction, code);
-                    }
-                    0x0A => {
-                        self.execute_blocking_get_key();
-                    }
-                    _ => println!("unsupported instruction: {:?}", decoded_instruction),
-                }
+                self.execute_f_instruction(x, instruction & 0x00FF);
             }
             0xE => {
                 let code = instruction & 0x00FF;
-                let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
+                let vx_value = self.cpu.get_general_register(x);
 
-                self.execute_skip_if_key(vx_value, code);
+                self.execute_skip_if_key(vx_value, code, instruction);
             }
             _ => {
-                println!("unsupported instruction: {:?}", decoded_instruction);
+                println!("unsupported instruction: {instruction:#06X}");
             }
         }
     }
 
-    fn execute_arithmetic_ops(&mut self, decoded_instruction: [u16; 4], vx: u16, vy: u16) {
+    fn execute_arithmetic_ops(&mut self, vx: u16, vy: u16, operation: u16) {
         let vx_value = self.cpu.get_general_register(vx);
         let vy_value = self.cpu.get_general_register(vy);
 
-        match decoded_instruction[3] {
+        match operation {
             0x0 => {
                 self.cpu.set_general_register(vx, vy_value);
             }
@@ -288,90 +267,67 @@ impl Interpreter {
                 .subtract_value_to_general_register(vy, vx_value, Some(vx)),
             0x6 => self.cpu.shift_right(vx),
             0xE => self.cpu.shift_left(vx),
-            _ => {}
+            _ => println!("unsupported arithmetic instruction: {operation:#X}"),
         }
     }
 
-    fn execute_skip_if_key(&mut self, vx_value: u8, code: u16) {
+    fn execute_skip_if_key(&mut self, vx_value: u8, code: u16, instruction: u16) {
         match code {
             0x9E => {
                 if self.keyboard.lock().unwrap().is_pressed(vx_value as usize) {
                     self.cpu.increment_pc();
                 }
             }
-            0xA1 => {
-                if !self.keyboard.lock().unwrap().is_pressed(vx_value as usize) {
-                    self.cpu.increment_pc();
-                }
+            0xA1 if !self.keyboard.lock().unwrap().is_pressed(vx_value as usize) => {
+                self.cpu.increment_pc();
             }
-            _ => {}
+            0xA1 => {}
+            _ => println!("unsupported instruction: {instruction:#06X}"),
         }
     }
 
-    fn execute_blocking_get_key(&mut self) {
-        let mut key_pressed = false;
-        let mut key_released = false;
+    fn execute_blocking_get_key(&mut self, register: u16) {
+        let mut pressed_key = None;
 
-        while !key_pressed && !key_released {
-            if self.quit.load(Ordering::Relaxed) {
-                break;
-            }
+        while !self.quit.load(Ordering::Relaxed) {
             self.timers.tick();
 
-            let pressed_key = {
+            let released_key = {
                 let keyboard = self.keyboard.lock().unwrap();
-                keyboard.is_key_pressed()
+                if let Some(key) = pressed_key {
+                    if !keyboard.is_pressed(key as usize) {
+                        Some(key)
+                    } else {
+                        None
+                    }
+                } else {
+                    pressed_key = keyboard.is_key_pressed();
+                    None
+                }
             };
 
-            if let Some(v) = pressed_key {
-                key_pressed = true;
-
-                while self.keyboard.lock().unwrap().is_pressed(v as usize) {}
-                key_released = true;
+            if let Some(key) = released_key {
+                self.cpu.set_general_register(register, key);
+                return;
             }
+            thread::sleep(Duration::from_millis(1));
         }
     }
 
-    fn execute_ram_operations(&mut self, decoded_instruction: [u16; 4], code: u16) {
-        match code {
-            0x55 => {
-                let i_value = self.cpu.get_i_register();
-
-                for i in 0..=decoded_instruction[1] {
-                    self.ram
-                        .write(i_value + i, self.cpu.get_general_register(i));
-                }
-            }
-            0x65 => {
-                let i_value = self.cpu.get_i_register();
-
-                for i in 0..=decoded_instruction[1] {
-                    let value = self.ram.read(i_value + i);
-
-                    self.cpu.set_general_register(i, value);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    fn execute_misc_ops(&mut self, decoded_instruction: [u16; 4], code: u16) {
+    fn execute_f_instruction(&mut self, x: u16, code: u16) {
         match code {
             0x07 => {
-                self.cpu
-                    .set_general_register(decoded_instruction[1], self.timers.get_delay());
+                self.cpu.set_general_register(x, self.timers.get_delay());
             }
             0x15 => {
-                self.timers
-                    .set_delay(self.cpu.get_general_register(decoded_instruction[1]));
+                self.timers.set_delay(self.cpu.get_general_register(x));
             }
             0x18 => {
-                self.timers
-                    .set_sound(self.cpu.get_general_register(decoded_instruction[1]));
+                self.timers.set_sound(self.cpu.get_general_register(x));
             }
             0x1E => {
                 let i_value = self.cpu.get_i_register();
-                let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
+                let vx_value = self.cpu.get_general_register(x);
 
                 let (result, carry) = i_value.overflowing_add(vx_value as u16);
 
@@ -379,20 +335,38 @@ impl Interpreter {
                 self.cpu.set_general_register(0xF, carry as u8);
             }
             0x29 => {
-                let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
+                let vx_value = self.cpu.get_general_register(x);
 
                 self.cpu
                     .set_i_register(ram::FONT_START_ADDRESS + (vx_value as u16 * 5));
             }
             0x33 => {
                 let i_value = self.cpu.get_i_register();
-                let vx_value = self.cpu.get_general_register(decoded_instruction[1]);
+                let vx_value = self.cpu.get_general_register(x);
 
                 self.ram.write(i_value, vx_value / 100);
                 self.ram.write(i_value + 1, (vx_value / 10) % 10);
                 self.ram.write(i_value + 2, vx_value % 10);
             }
-            _ => {}
+            0x55 => {
+                let i_value = self.cpu.get_i_register();
+
+                for i in 0..=x {
+                    self.ram
+                        .write(i_value + i, self.cpu.get_general_register(i));
+                }
+            }
+            0x65 => {
+                let i_value = self.cpu.get_i_register();
+
+                for i in 0..=x {
+                    let value = self.ram.read(i_value + i);
+
+                    self.cpu.set_general_register(i, value);
+                }
+            }
+            0x0A => self.execute_blocking_get_key(x),
+            _ => println!("unsupported instruction: {:#06X}", 0xF000 | (x << 8) | code),
         }
     }
 
