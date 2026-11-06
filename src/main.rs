@@ -18,6 +18,7 @@ pub mod ram;
 pub mod stack;
 /// Delay and sound timers.
 pub mod timers;
+pub mod terminal_guard;
 
 fn main() {
     let matches = command!()

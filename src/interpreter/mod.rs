@@ -5,19 +5,15 @@ use crate::ram::Ram;
 use crate::stack::Stack;
 use crate::timers::Timers;
 use crate::{fonts, ram};
-use crossterm::event::{
-    KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
-};
-use crossterm::execute;
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use std::fs::File;
-use std::io::{Error, Read, stdout};
+use std::io::{Error, Read};
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
+use crate::terminal_guard::TerminalGuard;
 
 const CPU_FREQUENCY: u64 = 500;
 const CYCLE_DURATION: Duration = Duration::from_nanos(1_000_000_000 / CPU_FREQUENCY);
@@ -98,7 +94,7 @@ impl Interpreter {
     ///
     /// Panics on terminal setup or output errors, invalid memory access, or an empty return stack.
     pub fn start_execution(&mut self) {
-        self.init_terminal();
+        let _terminal = TerminalGuard::new().expect("can't initialize terminal");
 
         self.start_keyboard_input();
 
@@ -119,8 +115,6 @@ impl Interpreter {
                 thread::sleep(CYCLE_DURATION - elapsed);
             }
         }
-
-        self.reset_terminal();
     }
 
     /// Starts a thread to update keyboard state from terminal events.
@@ -398,27 +392,6 @@ impl Interpreter {
             0x0A => self.execute_blocking_get_key(x),
             _ => println!("unsupported instruction: {:#06X}", 0xF000 | (x << 8) | code),
         }
-    }
-
-    /// Restores terminal mode and keyboard enhancement flags.
-    fn reset_terminal(&self) {
-        disable_raw_mode().expect("can't disable raw mode");
-        execute!(stdout(), PopKeyboardEnhancementFlags)
-            .expect("can't pop keyboard enhancement flags");
-    }
-
-    /// Enables raw mode and keyboard event reporting.
-    fn init_terminal(&self) {
-        enable_raw_mode().expect("can't enable raw mode");
-        execute!(
-            stdout(),
-            PushKeyboardEnhancementFlags(
-                KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES
-                    | KeyboardEnhancementFlags::REPORT_EVENT_TYPES
-                    | KeyboardEnhancementFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES
-            )
-        )
-        .expect("can't enable stdout enhancement flags");
     }
 
     /// Reads the next big-endian instruction and advances the program counter.
