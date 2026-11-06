@@ -1,7 +1,7 @@
 pub const PROGRAM_START_ADDRESS: u16 = 0x200;
 pub const FONT_START_ADDRESS: u16 = 0x050;
 
-pub const RAM_SIZE: usize = 4096;
+const RAM_SIZE: usize = 4096;
 
 pub struct Ram {
     memory: [u8; RAM_SIZE],

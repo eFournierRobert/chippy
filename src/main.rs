@@ -7,7 +7,7 @@ pub mod display;
 pub mod fonts;
 pub mod input;
 pub mod interpreter;
-mod ram;
+pub mod ram;
 pub mod stack;
 pub mod timers;
 
