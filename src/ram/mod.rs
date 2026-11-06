@@ -3,7 +3,7 @@ pub const PROGRAM_START_ADDRESS: u16 = 0x200;
 /// Address at which the built-in font is loaded.
 pub const FONT_START_ADDRESS: u16 = 0x050;
 
-const RAM_SIZE: usize = 4096;
+pub const RAM_SIZE: usize = 4096;
 
 /// The 4 KiB CHIP-8 memory.
 pub struct Ram {

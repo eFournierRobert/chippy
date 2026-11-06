@@ -13,6 +13,7 @@ use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use std::fs::File;
 use std::io::{Error, Read, stdout};
 use std::path::PathBuf;
+use std::process::exit;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -74,6 +75,11 @@ impl Interpreter {
         let mut bytes = Vec::new();
 
         f.read_to_end(&mut bytes)?;
+
+        if bytes.len() > ram::RAM_SIZE {
+            eprintln!("Binary is too big to be loaded in memory");
+            exit(1);
+        }
 
         for (i, byte) in bytes.iter().enumerate() {
             self.ram.write(ram::PROGRAM_START_ADDRESS + i as u16, *byte);
